@@ -8,3 +8,5 @@ with open("userdata.json", "r") as userdata:
     userdata = json.load(userdata)
 # login
 liscraper.login(userdata["email"], userdata["password"])
+#starting to scrape
+liscraper.scrape_person("barisaytimur")
