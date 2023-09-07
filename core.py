@@ -56,17 +56,29 @@ class LinkedinScaper:
         
         # scrape details for each experience
         for experience in experiences:
-            title = experience.find_element(By.XPATH, ".//div/div[2]/div[1]/div[1]/div/div/div/div/span[1]").text
-            print(title)
+            try:
+                title = experience.find_element(By.XPATH, ".//div/div[2]/div[1]/div[1]/div/div/div/div/span[1]").text
+                print(title)
+            except:
+                print("no title")
 
-            company_name_and_contract_type = experience.find_element(By.XPATH, ".//div/div[2]/div[1]/div[1]/span[1]/span[1]").text
-            print(company_name_and_contract_type)
-
-            dates = experience.find_element(By.XPATH, ".//div/div[2]/div[1]/div[1]/span[2]/span[1]").text
-            print(dates)
-
-            job_description = experience.find_element(By.XPATH, ".//div/div[2]/div[2]/ul/li[1]/div/ul/li/div/div/div/div/span[1]").text
-            print(job_description)
+            try:
+                company_name_and_contract_type = experience.find_element(By.XPATH, ".//div/div[2]/div[1]/div[1]/span[1]/span[1]").text
+                print(company_name_and_contract_type)
+            except:
+                print("no company name | contract type ")
+            
+            try:
+                dates = experience.find_element(By.XPATH, ".//div/div[2]/div[1]/div[1]/span[2]/span[1]").text
+                print(dates)
+            except:
+                print("no dates")
+            
+            try:
+                job_description = experience.find_element(By.XPATH, ".//div/div[2]/div[2]/ul/li[1]/div/ul/li/div/div/div/div/span[1]").text
+                print(job_description)
+            except:
+                print(f"no job desc for {company_name_and_contract_type}")
             try:
                 skills = experience.find_element(By.XPATH, ".//div/div[2]/div[2]/ul/li[2]/div/ul/li/div/div/div/div/span[1]").text
                 print(skills)
