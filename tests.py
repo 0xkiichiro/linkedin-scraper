@@ -9,4 +9,6 @@ with open("userdata.json", "r") as userdata:
 # login
 liscraper.login(userdata["email"], userdata["password"])
 #starting to scrape
-liscraper.scrape_person("barisaytimur")
+liscraper.scrape_person("alkan-kosar")
+liscraper.scrape_person("batu-buktel")
+liscraper.scrape_person("alper-batuhan-685272260")
