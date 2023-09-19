@@ -4,6 +4,7 @@ from selenium.webdriver.common.keys import Keys
 import time
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
+from unidecode import unidecode
 
 class LinkedinScaper:
     def __init__(self):
@@ -128,6 +129,7 @@ class PDFGenerator:
         print(f"generating pdf for {person.name}")
         # Create a PDF file
         c = canvas.Canvas(pdf_filename, pagesize=letter)
+        page_width, page_height = letter
 
         # Add heading
         c.setFont("Helvetica-Bold", 14)
@@ -138,46 +140,54 @@ class PDFGenerator:
         c.drawString(120, 700, "Personal Information")
         c.setFont("Helvetica", 10)
         # Write the person's information to the PDF
-        c.drawString(140, 680, person.name)
-        c.drawString(140, 660, person.title)
-        c.drawString(140, 640, person.location)
+        c.drawString(140, 680, unidecode(person.name))
+        c.drawString(140, 660, unidecode(person.title))
+        c.drawString(140, 640, unidecode(person.location))
 
         # Experiences
         c.setFont("Helvetica-Bold", 12)
         c.drawString(120, 620, "Experiences:")
         c.setFont("Helvetica", 12)
         y = 600
+
+        # Function to check if there's enough space for the content horizontally
+        def has_enough_space(height):
+            return y - height > 50  # Adjust this threshold as needed
+
         for experience in person.experiences:
-            if experience["title"] is None and experience["company_name_and_contract_type"] is None and experience["dates"] is None and experience["job_description"] is None and experience["skills"] is None:
-                pass
-            else:
+            if experience["title"] and experience["company_name_and_contract_type"]:
+                if not has_enough_space(20):  # Adjust this threshold
+                    c.showPage()  # Start a new page if there's not enough space horizontally
+                    y = page_height - 50  # Reset y position for the new page
                 if experience["title"] is not None:
                     c.setFillColorRGB(0, 0, 0, 1)
                     c.setFont("Helvetica-Bold", 10)
-                    c.drawString(140, y, experience["title"])
+                    c.drawString(140, y, unidecode(experience["title"]))
                     y -= 20
                 if experience["company_name_and_contract_type"] is not None:
                     c.setFillColorRGB(0, 0, 0, 1)
                     c.setFont("Helvetica", 10)
-                    c.drawString(140, y, experience["company_name_and_contract_type"])
+                    c.drawString(140, y, unidecode(experience["company_name_and_contract_type"]).replace("*", "·"))
                     y -= 20
                 if experience["dates"] is not None:
                     c.setFillColorRGB(0, 0, 0, 0.6)
                     c.setFont("Helvetica-Oblique", 8)
-                    c.drawString(140, y, experience["dates"])
+                    c.drawString(140, y, unidecode(experience["dates"]).replace("*", "·"))
                     y -= 20
                 if experience["job_description"] is not None:
                     c.setFillColorRGB(0, 0, 0, 1)
                     c.setFont("Helvetica", 8)
-                    job_description_lines = experience["job_description"].split('\n')
+                    job_description_lines = unidecode(experience["job_description"]).split('\n')
                     for line in job_description_lines:
                         c.drawString(140, y, line)
                         y -= 20
                 if experience["skills"] is not None:
                     c.setFillColorRGB(0, 0, 0, 1)
                     c.setFont("Helvetica", 8)
-                    c.drawString(140, y, experience["skills"])
+                    c.drawString(140, y, experience["skills"]) # didnt unidecode skills the dot turns into * and destroys the aesthetic, might fix later
                     y -= 20
+            else:
+                pass
 
         # Education
         c.setFillColorRGB(0, 0, 0, 1)
@@ -186,25 +196,27 @@ class PDFGenerator:
         c.setFont("Helvetica", 10)
         y -= 40
         for education in person.education:
-            if education["school_name"] is None and education["degree_type"] is None and education["school_years"] is None:
-                pass
-            else:
+            if education["school_name"]:
+                if not has_enough_space(20):  # Adjust this threshold
+                    c.showPage()  # Start a new page if there's not enough space horizontally
+                    y = page_height - 50  # Reset y position for the new page
                 if education["school_name"] is not None:
                     c.setFillColorRGB(0, 0, 0, 1)
                     c.setFont("Helvetica-Bold", 10)
-                    c.drawString(140, y, education["school_name"])
+                    c.drawString(140, y, unidecode(education["school_name"]))
                     y -= 20
                 if education["degree_type"] is not None:
                     c.setFillColorRGB(0, 0, 0, 1)
                     c.setFont("Helvetica", 8)
-                    c.drawString(140, y, education["degree_type"])
+                    c.drawString(140, y, unidecode(education["degree_type"]))
                     y -= 20
                 if education["school_years"] is not None:
                     c.setFillColorRGB(0, 0, 0, 0.6)
                     c.setFont("Helvetica-Oblique", 8)
-                    c.drawString(140, y, education["school_years"])
+                    c.drawString(140, y, unidecode(education["school_years"]))
                     y -= 20
-
+            else:
+                pass
 
         # Save the PDF file
         c.save()
