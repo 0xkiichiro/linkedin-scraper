@@ -2,9 +2,12 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import time
+from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from unidecode import unidecode
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 class LinkedinScaper:
     def __init__(self):
@@ -44,7 +47,28 @@ class LinkedinScaper:
         text_details = self.driver.find_element(By.CLASS_NAME, "pv-text-details__left-panel")
         person.name = text_details.find_elements(By.TAG_NAME, "div")[0].find_element(By.TAG_NAME, "h1").text
         person.title = text_details.find_elements(By.TAG_NAME, "div")[1].text
-        person.location = self.driver.find_elements(By.CLASS_NAME, "pv-text-details__left-panel")[1].find_element(By.TAG_NAME, "span").text
+        contact_line = self.driver.find_elements(By.CLASS_NAME, "pv-text-details__left-panel")[1]
+        person.location = contact_line.find_element(By.TAG_NAME, "span").text
+        try:
+            contacts_link = contact_line.find_elements(By.TAG_NAME, "span")[1]
+            contacts_link.click()
+            time.sleep(self.WAIT_TIME)
+            modal = self.driver.find_element(By.CLASS_NAME, "artdeco-modal")
+            contact_lines = modal.find_elements(By.TAG_NAME, "a")
+            person.contacts["linkedin"] = contact_lines[0].text
+            for line in contact_lines:
+                text = line.text.strip()
+                # Check if the line contains a LinkedIn profile link
+                if "linkedin.com/in/" in text:
+                    person.contacts["linkedin"] = text
+                # Check if the line contains an email address
+                elif "@" in text:
+                    person.contacts["email"] = text
+                print(line.text)
+            modal.find_element(By.TAG_NAME, "button").click()
+            time.sleep(self.WAIT_TIME)
+        except:
+            print(f"No contact information for {person.name}")
         
         # Scrape experiences
         experience_container = self.driver.find_element(By.CLASS_NAME, "pvs-list")
@@ -108,6 +132,7 @@ class LinkedinScaper:
         print("Name:", person.name)
         print("Title:", person.title)
         print("Location:", person.location)
+        print("Contacts:", person.contacts)
         print("Experiences:", person.experiences)
         print("Education:", person.education)
 
@@ -123,101 +148,118 @@ class Person:
         self.location = ""
         self.experiences = []
         self.education = []
+        self.contacts = {
+            "linkedin": "",
+            "email": "",
+            "phone_number": "",
+            "website": ""
+        }
 
 class PDFGenerator:
     def generate_pdf(self, person, pdf_filename):
-        print(f"generating pdf for {person.name}")
-        # Create a PDF file
-        c = canvas.Canvas(pdf_filename, pagesize=letter)
-        page_width, page_height = letter
+        # Create a buffer for the PDF
+        buffer = BytesIO()
+
+        # Create a SimpleDocTemplate with the buffer
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+
+        # Define styles
+        styles = getSampleStyleSheet()
+        # justified
+        justified_style = ParagraphStyle(name='JustifiedStyle')
+        justified_style.fontName = 'Helvetica'  # Use Calibri font
+        justified_style.fontSize = 8  # Font size
+        justified_style.alignment = 4  # Justified alignment (4=justify)
+        # oblique
+        oblique_style = ParagraphStyle(name='ItalicStyle')
+        oblique_style.fontName = 'Helvetica'
+        oblique_style.fontSize = 8
+        oblique_style.textColor = (0, 0, 0, 0.6)  # (R, G, B, Opacity)
+        oblique_style.alignment = 0  # Left alignment (adjust as needed)
+        oblique_style.fontName = 'Helvetica-Oblique'  # Use an oblique font
+        # subheading
+        subheading_style = ParagraphStyle(name='SubheadingStyle')
+        subheading_style.fontName = 'Helvetica-Bold'  # Font name
+        subheading_style.fontSize = 9  # Font size
+        subheading_style.alignment = 0  # Left alignment (adjust as needed)
+        # regular8
+        regular_style_8 = ParagraphStyle(name='RegularStyle8')
+        regular_style_8.fontName = 'Helvetica'  # Font name
+        regular_style_8.fontSize = 8  # Font size
+        regular_style_8.alignment = 0  # Left alignment (adjust as needed)
+
+        # Create Story (a list of elements that go into the PDF)
+        story = []
 
         # Add heading
-        c.setFont("Helvetica-Bold", 14)
-        c.drawString(100, 725, "Curriculum Vitae")
+        heading = Paragraph("<b>Curriculum Vitae</b>", styles['Heading2'])
+        story.append(heading)
 
         # Add sub-heading
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(120, 700, "Personal Information")
-        c.setFont("Helvetica", 10)
-        # Write the person's information to the PDF
-        c.drawString(140, 680, unidecode(person.name))
-        c.drawString(140, 660, unidecode(person.title))
-        c.drawString(140, 640, unidecode(person.location))
+        personal_info_heading = Paragraph("<b>Personal Information</b>", styles['Heading3'])
+        story.append(personal_info_heading)
 
-        # Experiences
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(120, 620, "Experiences:")
-        c.setFont("Helvetica", 12)
-        y = 600
+        # Add Personal Information
+        personal_info_text = f"<b>Name:</b> {unidecode(person.name)}<br/><b>Title:</b> {unidecode(person.title)}<br/><b>Location:</b> {unidecode(person.location)}<br/>"
+        personal_info = Paragraph(personal_info_text, regular_style_8)
+        story.append(personal_info)
 
-        # Function to check if there's enough space for the content horizontally
-        def has_enough_space(height):
-            return y - height > 50  # Adjust this threshold as needed
+        # Add Experiences
+        experiences_heading = Paragraph("<b>Experiences:</b>", styles['Heading3'])
+        story.append(experiences_heading)
 
         for experience in person.experiences:
             if experience["title"] and experience["company_name_and_contract_type"]:
-                if not has_enough_space(20):  # Adjust this threshold
-                    c.showPage()  # Start a new page if there's not enough space horizontally
-                    y = page_height - 50  # Reset y position for the new page
                 if experience["title"] is not None:
-                    c.setFillColorRGB(0, 0, 0, 1)
-                    c.setFont("Helvetica-Bold", 10)
-                    c.drawString(140, y, unidecode(experience["title"]))
-                    y -= 20
+                    exp_title = unidecode(experience["title"])
+                    exp_title_paragraph = Paragraph(exp_title, subheading_style)
+                    story.append(exp_title_paragraph)
                 if experience["company_name_and_contract_type"] is not None:
-                    c.setFillColorRGB(0, 0, 0, 1)
-                    c.setFont("Helvetica", 10)
-                    c.drawString(140, y, unidecode(experience["company_name_and_contract_type"]).replace("*", "·"))
-                    y -= 20
+                    exp_company = unidecode(experience["company_name_and_contract_type"]).replace("*", "·")
+                    exp_company_paragraph = Paragraph(exp_company, regular_style_8)
+                    story.append(exp_company_paragraph)
                 if experience["dates"] is not None:
-                    c.setFillColorRGB(0, 0, 0, 0.6)
-                    c.setFont("Helvetica-Oblique", 8)
-                    c.drawString(140, y, unidecode(experience["dates"]).replace("*", "·"))
-                    y -= 20
+                    exp_dates = unidecode(experience["dates"]).replace("*", "·")
+                    exp_dates_paragraph = Paragraph(exp_dates, oblique_style)
+                    story.append(exp_dates_paragraph)
                 if experience["job_description"] is not None:
-                    c.setFillColorRGB(0, 0, 0, 1)
-                    c.setFont("Helvetica", 8)
-                    job_description_lines = unidecode(experience["job_description"]).split('\n')
-                    for line in job_description_lines:
-                        c.drawString(140, y, line)
-                        y -= 20
+                    exp_description = unidecode(experience["job_description"])
+                    exp_description_paragraph = Paragraph(exp_description, justified_style)
+                    story.append(exp_description_paragraph)
                 if experience["skills"] is not None:
-                    c.setFillColorRGB(0, 0, 0, 1)
-                    c.setFont("Helvetica", 8)
-                    c.drawString(140, y, experience["skills"]) # didnt unidecode skills the dot turns into * and destroys the aesthetic, might fix later
-                    y -= 20
-            else:
-                pass
+                    exp_skills = experience["skills"].replace("*", "·")
+                    exp_skills_paragraph = Paragraph(exp_skills, regular_style_8)
+                    story.append(exp_skills_paragraph)
+                story.append(Spacer(1, 12))  # Add spacing between experiences
 
-        # Education
-        c.setFillColorRGB(0, 0, 0, 1)
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(120, y - 20, "Education:")
-        c.setFont("Helvetica", 10)
-        y -= 40
+        # Add Education
+        education_heading = Paragraph("<b>Education:</b>", styles['Heading3'])
+        story.append(education_heading)
+
         for education in person.education:
             if education["school_name"]:
-                if not has_enough_space(20):  # Adjust this threshold
-                    c.showPage()  # Start a new page if there's not enough space horizontally
-                    y = page_height - 50  # Reset y position for the new page
                 if education["school_name"] is not None:
-                    c.setFillColorRGB(0, 0, 0, 1)
-                    c.setFont("Helvetica-Bold", 10)
-                    c.drawString(140, y, unidecode(education["school_name"]))
-                    y -= 20
+                    edu_school_name = unidecode(education["school_name"])
+                    edu_school_name_paragraph = Paragraph(edu_school_name, subheading_style)
+                    story.append(edu_school_name_paragraph)
                 if education["degree_type"] is not None:
-                    c.setFillColorRGB(0, 0, 0, 1)
-                    c.setFont("Helvetica", 8)
-                    c.drawString(140, y, unidecode(education["degree_type"]))
-                    y -= 20
+                    edu_degree_type = unidecode(education["degree_type"])
+                    edu_degree_type_paragraph = Paragraph(edu_degree_type, regular_style_8)
+                    story.append(edu_degree_type_paragraph)
                 if education["school_years"] is not None:
-                    c.setFillColorRGB(0, 0, 0, 0.6)
-                    c.setFont("Helvetica-Oblique", 8)
-                    c.drawString(140, y, unidecode(education["school_years"]))
-                    y -= 20
-            else:
-                pass
+                    edu_school_years = unidecode(education["school_years"])
+                    edu_school_years_paragraph = Paragraph(edu_school_years, oblique_style)
+                    story.append(edu_school_years_paragraph)
+                story.append(Spacer(1, 12))  # Add spacing between education entries
 
-        # Save the PDF file
-        c.save()
+        # Build the PDF
+        doc.build(story)
+
+        # Move the buffer position to the beginning
+        buffer.seek(0)
+
+        # Write the PDF to a file
+        with open(pdf_filename, 'wb') as f:
+            f.write(buffer.read())
+
         print(f"PDF file '{pdf_filename}' created successfully.")
