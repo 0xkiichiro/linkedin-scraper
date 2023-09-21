@@ -138,22 +138,41 @@ class LinkedinScaper:
 
             person.education.append(education_info)
         
+        # Scrape Certifications
+        try:
+            certificates_section = self.driver.find_element(By.ID, "licenses_and_certifications")
+            certificate_list = certificates_section.find_elements(By.XPATH, ".//following-sibling::*[position() = 2]/ul/*")
+            for item in certificate_list:
+                try:
+                    certificate_name = item.find_element(By.XPATH, ".//div/div[2]/div/div[1]/div/div/div/div/span[1]").text
+                except:
+                    certificate_name = ""
+                try:
+                    certificate_issuer = item.find_element(By.XPATH, ".//div/div[2]/div/div[1]/span[1]/span[1]").text
+                except:
+                    certificate_issuer = ""
+                try:
+                    certicate_issue_date = item.find_element(By.XPATH, ".//div/div[2]/div/div[1]/span[2]/span[1]").text
+                except:
+                    certicate_issue_date = ""
+
+                certificate_obj = {
+                    "name": certificate_name,
+                    "issuer": certificate_issuer,
+                    "issue_date": certicate_issue_date
+                }
+                person.certificates.append(certificate_obj)
+        except:
+            print(f"No certificates for {person.name}")
+
         # Scrape Languages
         languages_section = self.driver.find_element(By.ID, "languages")
         language_list = languages_section.find_elements(By.XPATH, ".//following-sibling::*[position() = 2]/ul/*")
         for item in language_list:
             language = item.find_element(By.XPATH, ".//span").text
-            person.languages.append(language)
-        
-        print("Scraped Person Object:")
-        print("Name:", person.name)
-        print("Title:", person.title)
-        print("Location:", person.location)
-        print("Contacts:", person.contacts)
-        print("Experiences:", person.experiences)
-        print("Education:", person.education)
-        print("Languages:", person.languages)
+            person.languages.append(language)        
 
+        print("Scraped Person Object:", person.name)
         return person
 
     def close_browser(self):
@@ -167,6 +186,7 @@ class Person:
         self.about_text = ""
         self.experiences = []
         self.education = []
+        self.certificates = []
         self.languages = []
         self.contacts = {
             "linkedin": "",
@@ -276,6 +296,22 @@ class PDFGenerator:
                     edu_school_years_paragraph = Paragraph(edu_school_years, oblique_style)
                     story.append(edu_school_years_paragraph)
                 story.append(Spacer(1, 12))  # Add spacing between education entries
+
+        # Add Certificates
+        if len(person.languages):
+            certificates_heading = Paragraph("<b>Certificates:</b>", styles['Heading3'])
+            story.append(certificates_heading)
+            for certificate in person.certificates:
+                certificate_name = unidecode(certificate["name"])
+                certificate_name_paragraph = Paragraph(certificate_name, subheading_style)
+                story.append(certificate_name_paragraph)
+                certificate_issuer = unidecode(certificate["issuer"])
+                certificate_issuer_paragraph = Paragraph(certificate_issuer, regular_style_8)
+                story.append(certificate_issuer_paragraph)
+                certificate_issue_date = unidecode(certificate["issue_date"])
+                certificate_issue_date_paragraph = Paragraph(certificate_issue_date, oblique_style)
+                story.append(certificate_issue_date_paragraph)
+            story.append(Spacer(1, 12))  # Add spacing between education entries
 
         # Add Languages
         if len(person.languages):
