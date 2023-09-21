@@ -12,7 +12,7 @@ liscraper.login(userdata["email"], userdata["password"])
 
 #starting to scrape
 scrape_list = ["dorukylmz", "berk-özer-a30358b9", "alkan-kosar", "batu-buktel", "alper-batuhan-685272260", "barisaytimur", "cem-sarı-729b371b5", "cansu-özer-180003214", "başar-aytimur-266372250"]
-scrape_list_short = ["batu-buktel", "barisaytimur", "başar-aytimur-266372250", "can-erdogan-", "batusozen", "er"]
+scrape_list_short = ["batu-buktel", "barisaytimur", "başar-aytimur-266372250", "can-erdogan-", "batusozen"]
 for scrapee in scrape_list_short:
     person = liscraper.scrape_person(scrapee)
     pdf_generator = PDFGenerator()

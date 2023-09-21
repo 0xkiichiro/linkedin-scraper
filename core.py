@@ -29,7 +29,7 @@ class LinkedinScaper:
         email_input.send_keys(email)
         password_input.send_keys(password)
         password_input.send_keys(Keys.ENTER)
-        # time.sleep(15) # fix later, this is a hack to manually surpass captcha
+        time.sleep(10) # fix later, this is a hack to manually surpass captcha
         time.sleep(self.WAIT_TIME)
         print("logged into account")
 
@@ -49,6 +49,16 @@ class LinkedinScaper:
         person.title = text_details.find_elements(By.TAG_NAME, "div")[1].text
         contact_line = self.driver.find_elements(By.CLASS_NAME, "pv-text-details__left-panel")[1]
         person.location = contact_line.find_element(By.TAG_NAME, "span").text
+        # Check for about section
+        try:
+            about_section = self.driver.find_element(By.ID, "about")
+            about_text = about_section.find_element(By.XPATH, ".//following-sibling::*[position() = 2]/div/div/div/span").text
+            person.about_text = about_text
+            print(person.about_text)
+        except:
+            print(f"No about text for {person.name}")
+            person.about_text = None
+        # Check for contacts
         try:
             contacts_link = contact_line.find_elements(By.TAG_NAME, "span")[1]
             contacts_link.click()
@@ -128,6 +138,13 @@ class LinkedinScaper:
 
             person.education.append(education_info)
         
+        # Scrape Languages
+        languages_section = self.driver.find_element(By.ID, "languages")
+        language_list = languages_section.find_elements(By.XPATH, ".//following-sibling::*[position() = 2]/ul/*")
+        for item in language_list:
+            language = item.find_element(By.XPATH, ".//span").text
+            person.languages.append(language)
+        
         print("Scraped Person Object:")
         print("Name:", person.name)
         print("Title:", person.title)
@@ -135,6 +152,7 @@ class LinkedinScaper:
         print("Contacts:", person.contacts)
         print("Experiences:", person.experiences)
         print("Education:", person.education)
+        print("Languages:", person.languages)
 
         return person
 
@@ -146,8 +164,10 @@ class Person:
         self.name = ""
         self.title = ""
         self.location = ""
+        self.about_text = ""
         self.experiences = []
         self.education = []
+        self.languages = []
         self.contacts = {
             "linkedin": "",
             "email": "",
@@ -204,6 +224,11 @@ class PDFGenerator:
         personal_info = Paragraph(personal_info_text, regular_style_8)
         story.append(personal_info)
 
+        if person.about_text:
+            about_text = Paragraph(person.about_text, regular_style_8)
+            story.append(about_text)
+            story.append(Spacer(1, 12))  # Add spacing between education entries
+
         # Add Experiences
         experiences_heading = Paragraph("<b>Experiences:</b>", styles['Heading3'])
         story.append(experiences_heading)
@@ -251,6 +276,16 @@ class PDFGenerator:
                     edu_school_years_paragraph = Paragraph(edu_school_years, oblique_style)
                     story.append(edu_school_years_paragraph)
                 story.append(Spacer(1, 12))  # Add spacing between education entries
+
+        # Add Languages
+        if len(person.languages):
+            languages_heading = Paragraph("<b>Languages:</b>", styles['Heading3'])
+            story.append(languages_heading)
+            for language in person.languages:
+                language_name = unidecode(language)
+                language_name_paragraph = Paragraph(language_name, regular_style_8)
+                story.append(language_name_paragraph)
+            story.append(Spacer(1, 12))  # Add spacing between education entries
 
         # Build the PDF
         doc.build(story)
