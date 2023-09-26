@@ -15,7 +15,7 @@ class LinkedinScaper:
         self.options = webdriver.FirefoxOptions()
         self.driver = webdriver.Firefox(options=self.options)
         self.driver.maximize_window()
-        self.driver.get('http://www.linkedin.com/login')
+        self.driver.get("http://www.linkedin.com/login")
     
     def set_self_wait_time(self, NEW_WAIT_TIME):
         self.WAIT_TIME = NEW_WAIT_TIME
@@ -114,29 +114,32 @@ class LinkedinScaper:
             person.experiences.append(experience_info)
         
         # Scrape education
-        education_header = self.driver.find_element(By.ID, "education")
-        education_section = education_header.find_element(By.XPATH, "..")
-        education_list = education_section.find_element(By.TAG_NAME, "ul")
-        educations = education_list.find_elements(By.XPATH, "*")
-        
-        for education in educations:
-            education_info = {}
-            try:
-                education_info["school_name"] = education.find_element(By.XPATH, ".//div/div[2]/div/a/div/div/div/div/span[1]").text
-            except:
-                education_info["school_name"] = None
+        try:
+            education_header = self.driver.find_element(By.ID, "education")
+            education_section = education_header.find_element(By.XPATH, "..")
+            education_list = education_section.find_element(By.TAG_NAME, "ul")
+            educations = education_list.find_elements(By.XPATH, "*")
+            
+            for education in educations:
+                education_info = {}
+                try:
+                    education_info["school_name"] = education.find_element(By.XPATH, ".//div/div[2]/div/a/div/div/div/div/span[1]").text
+                except:
+                    education_info["school_name"] = None
 
-            try:
-                education_info["degree_type"] = education.find_element(By.XPATH, ".//div/div[2]/div/a/span[1]/span[1]").text
-            except:
-                education_info["degree_type"] = None
+                try:
+                    education_info["degree_type"] = education.find_element(By.XPATH, ".//div/div[2]/div/a/span[1]/span[1]").text
+                except:
+                    education_info["degree_type"] = None
 
-            try:
-                education_info["school_years"] = education.find_element(By.XPATH, ".//div/div[2]/div/a/span[2]/span[1]").text
-            except:
-                education_info["school_years"] = None
+                try:
+                    education_info["school_years"] = education.find_element(By.XPATH, ".//div/div[2]/div/a/span[2]/span[1]").text
+                except:
+                    education_info["school_years"] = None
 
-            person.education.append(education_info)
+                person.education.append(education_info)
+        except:
+            print(f"No education for {person.name}")
         
         # Scrape Certifications
         try:
@@ -166,11 +169,23 @@ class LinkedinScaper:
             print(f"No certificates for {person.name}")
 
         # Scrape Languages
-        languages_section = self.driver.find_element(By.ID, "languages")
-        language_list = languages_section.find_elements(By.XPATH, ".//following-sibling::*[position() = 2]/ul/*")
-        for item in language_list:
-            language = item.find_element(By.XPATH, ".//span").text
-            person.languages.append(language)        
+        try:
+            languages_section = self.driver.find_element(By.ID, "languages")
+            language_list = languages_section.find_elements(By.XPATH, ".//following-sibling::*[position() = 2]/ul/*")
+            for item in language_list:
+                language_name = item.find_element(By.XPATH, ".//span").text
+                try:
+                    language_proficiency = item.find_element(By.XPATH, ".//div/div[2]/div/div[1]/span/span[1]").text
+                    print(language_proficiency)
+                except:
+                    language_proficiency = ""
+                lang_obj = {
+                 "name": language_name,
+                 "proficiency": language_proficiency
+                }
+                person.languages.append(lang_obj)        
+        except:
+            print(f"No languages for {person.name}")
 
         print("Scraped Person Object:", person.name)
         return person
@@ -206,25 +221,25 @@ class PDFGenerator:
         # Define styles
         styles = getSampleStyleSheet()
         # justified
-        justified_style = ParagraphStyle(name='JustifiedStyle')
-        justified_style.fontName = 'Helvetica'  # Use Calibri font
+        justified_style = ParagraphStyle(name="JustifiedStyle")
+        justified_style.fontName = "Helvetica"  # Use Calibri font
         justified_style.fontSize = 8  # Font size
         justified_style.alignment = 4  # Justified alignment (4=justify)
         # oblique
-        oblique_style = ParagraphStyle(name='ItalicStyle')
-        oblique_style.fontName = 'Helvetica'
+        oblique_style = ParagraphStyle(name="ItalicStyle")
+        oblique_style.fontName = "Helvetica"
         oblique_style.fontSize = 8
         oblique_style.textColor = (0, 0, 0, 0.6)  # (R, G, B, Opacity)
         oblique_style.alignment = 0  # Left alignment (adjust as needed)
-        oblique_style.fontName = 'Helvetica-Oblique'  # Use an oblique font
+        oblique_style.fontName = "Helvetica-Oblique"  # Use an oblique font
         # subheading
-        subheading_style = ParagraphStyle(name='SubheadingStyle')
-        subheading_style.fontName = 'Helvetica-Bold'  # Font name
+        subheading_style = ParagraphStyle(name="SubheadingStyle")
+        subheading_style.fontName = "Helvetica-Bold"  # Font name
         subheading_style.fontSize = 9  # Font size
         subheading_style.alignment = 0  # Left alignment (adjust as needed)
         # regular8
-        regular_style_8 = ParagraphStyle(name='RegularStyle8')
-        regular_style_8.fontName = 'Helvetica'  # Font name
+        regular_style_8 = ParagraphStyle(name="RegularStyle8")
+        regular_style_8.fontName = "Helvetica"  # Font name
         regular_style_8.fontSize = 8  # Font size
         regular_style_8.alignment = 0  # Left alignment (adjust as needed)
 
@@ -232,11 +247,11 @@ class PDFGenerator:
         story = []
 
         # Add heading
-        heading = Paragraph("<b>Curriculum Vitae</b>", styles['Heading2'])
+        heading = Paragraph("<b>Curriculum Vitae</b>", styles["Heading2"])
         story.append(heading)
 
         # Add sub-heading
-        personal_info_heading = Paragraph("<b>Personal Information</b>", styles['Heading3'])
+        personal_info_heading = Paragraph("<b>Personal Information</b>", styles["Heading3"])
         story.append(personal_info_heading)
 
         # Add Personal Information
@@ -250,7 +265,7 @@ class PDFGenerator:
             story.append(Spacer(1, 12))  # Add spacing between education entries
 
         # Add Experiences
-        experiences_heading = Paragraph("<b>Experiences:</b>", styles['Heading3'])
+        experiences_heading = Paragraph("<b>Experiences:</b>", styles["Heading3"])
         story.append(experiences_heading)
 
         for experience in person.experiences:
@@ -278,7 +293,7 @@ class PDFGenerator:
                 story.append(Spacer(1, 12))  # Add spacing between experiences
 
         # Add Education
-        education_heading = Paragraph("<b>Education:</b>", styles['Heading3'])
+        education_heading = Paragraph("<b>Education:</b>", styles["Heading3"])
         story.append(education_heading)
 
         for education in person.education:
@@ -298,8 +313,8 @@ class PDFGenerator:
                 story.append(Spacer(1, 12))  # Add spacing between education entries
 
         # Add Certificates
-        if len(person.languages):
-            certificates_heading = Paragraph("<b>Certificates:</b>", styles['Heading3'])
+        if len(person.certificates):
+            certificates_heading = Paragraph("<b>Certificates:</b>", styles["Heading3"])
             story.append(certificates_heading)
             for certificate in person.certificates:
                 certificate_name = unidecode(certificate["name"])
@@ -315,12 +330,20 @@ class PDFGenerator:
 
         # Add Languages
         if len(person.languages):
-            languages_heading = Paragraph("<b>Languages:</b>", styles['Heading3'])
+            languages_heading = Paragraph("<b>Languages:</b>", styles["Heading3"])
             story.append(languages_heading)
             for language in person.languages:
-                language_name = unidecode(language)
+                language_name = unidecode(language["name"])
                 language_name_paragraph = Paragraph(language_name, regular_style_8)
                 story.append(language_name_paragraph)
+                if language["proficiency"] is not None:
+                    language_proficiency = unidecode(language["proficiency"])
+                    language_proficiency_paragraph = Paragraph(language_proficiency, oblique_style)
+                    story.append(language_proficiency_paragraph)
+                else:
+                    language_proficiency = ""
+                    language_proficiency_paragraph = Paragraph(language_proficiency, oblique_style)
+                    story.append(language_proficiency_paragraph)
             story.append(Spacer(1, 12))  # Add spacing between education entries
 
         # Build the PDF
@@ -330,7 +353,7 @@ class PDFGenerator:
         buffer.seek(0)
 
         # Write the PDF to a file
-        with open(pdf_filename, 'wb') as f:
+        with open(pdf_filename, "wb") as f:
             f.write(buffer.read())
 
-        print(f"PDF file '{pdf_filename}' created successfully.")
+        print(f"PDF file {pdf_filename} created successfully.")
