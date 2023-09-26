@@ -331,6 +331,7 @@ class PDFGenerator:
                 story.append(Spacer(1, 12))  # Add spacing between education entries
 
         # Add Certificates
+        # todo: heading still present when there is no content underneath, fix
         if len(person.certificates):
             certificates_heading = Paragraph("<b>Certificates:</b>", styles["Heading3"])
             story.append(certificates_heading)
