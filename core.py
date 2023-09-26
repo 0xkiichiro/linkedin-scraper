@@ -4,7 +4,6 @@ from selenium.webdriver.common.keys import Keys
 import time
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 from unidecode import unidecode
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -29,7 +28,7 @@ class LinkedinScaper:
         email_input.send_keys(email)
         password_input.send_keys(password)
         password_input.send_keys(Keys.ENTER)
-        time.sleep(10) # fix later, this is a hack to manually surpass captcha
+        # time.sleep(10) # fix later, this is a hack to manually surpass captcha
         time.sleep(self.WAIT_TIME)
         print("logged into account")
 
@@ -54,9 +53,7 @@ class LinkedinScaper:
             about_section = self.driver.find_element(By.ID, "about")
             about_text = about_section.find_element(By.XPATH, ".//following-sibling::*[position() = 2]/div/div/div/span").text
             person.about_text = about_text
-            print(person.about_text)
         except:
-            print(f"No about text for {person.name}")
             person.about_text = None
         # Check for contacts
         try:
@@ -74,44 +71,66 @@ class LinkedinScaper:
                 # Check if the line contains an email address
                 elif "@" in text:
                     person.contacts["email"] = text
-                print(line.text)
             modal.find_element(By.TAG_NAME, "button").click()
             time.sleep(self.WAIT_TIME)
         except:
-            print(f"No contact information for {person.name}")
+            pass
         
         # Scrape experiences
         experience_container = self.driver.find_element(By.CLASS_NAME, "pvs-list")
         experiences = experience_container.find_elements(By.XPATH, "*")
-        
         for experience in experiences:
-            experience_info = {}
             try:
-                experience_info["title"] = experience.find_element(By.XPATH, ".//div/div[2]/div[1]/div[1]/div/div/div/div/span[1]").text
+                multi_position = experience.find_element(By.TAG_NAME, "ul")
+                positions = multi_position.find_elements(By.XPATH, "*")
+                company_name = experience.find_element(By.XPATH, ".//div/div[2]/div[1]/a/div/div/div/div/span[1]").text
+                print(f"multi position spotted, {len(positions)} for {company_name}")
+                for position in positions:
+                    experience_info = {}
+                    experience_info["company_name_and_contract_type"] = company_name
+                    position_data = position.find_element(By.TAG_NAME, "a")
+                    try:
+                        experience_info["title"] = position_data.find_element(By.XPATH, ".//div/div/div/div/span[1]").text
+                    except:
+                        experience_info["title"] = None
+                    try: # todo: parse the data accordingly and assign to correct keys, add exact xpath to prevent multiple extraction
+                        sub_data = position_data.find_elements(By.TAG_NAME, "span")
+                        for data in sub_data:
+                            print(data.text)
+                    except:
+                        pass
+                    experience_info["dates"] = None
+                    experience_info["job_description"] = None
+                    experience_info["skills"] = None
+                    person.experiences.append(experience_info)
             except:
-                experience_info["title"] = None
+                experience_info = {}
+                try:
+                    experience_info["title"] = experience.find_element(By.XPATH, ".//div/div[2]/div[1]/div[1]/div/div/div/div/span[1]").text
+                except:
+                    experience_info["title"] = None
 
-            try:
-                experience_info["company_name_and_contract_type"] = experience.find_element(By.XPATH, ".//div/div[2]/div[1]/div[1]/span[1]/span[1]").text
-            except:
-                experience_info["company_name_and_contract_type"] = None
+                try:
+                    experience_info["company_name_and_contract_type"] = experience.find_element(By.XPATH, ".//div/div[2]/div[1]/div[1]/span[1]/span[1]").text
+                except:
+                    experience_info["company_name_and_contract_type"] = None
 
-            try:
-                experience_info["dates"] = experience.find_element(By.XPATH, ".//div/div[2]/div[1]/div[1]/span[2]/span[1]").text
-            except:
-                experience_info["dates"] = None
+                try:
+                    experience_info["dates"] = experience.find_element(By.XPATH, ".//div/div[2]/div[1]/div[1]/span[2]/span[1]").text
+                except:
+                    experience_info["dates"] = None
 
-            try:
-                experience_info["job_description"] = experience.find_element(By.XPATH, ".//div/div[2]/div[2]/ul/li[1]/div/ul/li/div/div/div/div/span[1]").text
-            except:
-                experience_info["job_description"] = None
+                try:
+                    experience_info["job_description"] = experience.find_element(By.XPATH, ".//div/div[2]/div[2]/ul/li[1]/div/ul/li/div/div/div/div/span[1]").text
+                except:
+                    experience_info["job_description"] = None
 
-            try:
-                experience_info["skills"] = experience.find_element(By.XPATH, ".//div/div[2]/div[2]/ul/li[2]/div/ul/li/div/div/div/div/span[1]").text
-            except:
-                experience_info["skills"] = None
+                try:
+                    experience_info["skills"] = experience.find_element(By.XPATH, ".//div/div[2]/div[2]/ul/li[2]/div/ul/li/div/div/div/div/span[1]").text
+                except:
+                    experience_info["skills"] = None
 
-            person.experiences.append(experience_info)
+                person.experiences.append(experience_info)
         
         # Scrape education
         try:
@@ -139,7 +158,7 @@ class LinkedinScaper:
 
                 person.education.append(education_info)
         except:
-            print(f"No education for {person.name}")
+            pass
         
         # Scrape Certifications
         try:
@@ -166,7 +185,7 @@ class LinkedinScaper:
                 }
                 person.certificates.append(certificate_obj)
         except:
-            print(f"No certificates for {person.name}")
+            pass
 
         # Scrape Languages
         try:
@@ -176,7 +195,6 @@ class LinkedinScaper:
                 language_name = item.find_element(By.XPATH, ".//span").text
                 try:
                     language_proficiency = item.find_element(By.XPATH, ".//div/div[2]/div/div[1]/span/span[1]").text
-                    print(language_proficiency)
                 except:
                     language_proficiency = ""
                 lang_obj = {
