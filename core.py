@@ -86,22 +86,59 @@ class LinkedinScaper:
                 company_name = experience.find_element(By.XPATH, ".//div/div[2]/div[1]/a/div/div/div/div/span[1]").text
                 print(f"multi position spotted, {len(positions)} for {company_name}")
                 for position in positions:
-                    experience_info = {}
+                    experience_info = {
+                        "company_name_and_contract_type": None,
+                        "title": None,
+                        "employment_type": None,
+                        "location": None,
+                        "dates": None,
+                        "skills": None,
+                        "job_description": None
+                    }
                     experience_info["company_name_and_contract_type"] = company_name
                     position_data = position.find_element(By.TAG_NAME, "a")
                     try:
                         experience_info["title"] = position_data.find_element(By.XPATH, ".//div/div/div/div/span[1]").text
                     except:
                         experience_info["title"] = None
-                    try: # todo: parse the data accordingly and assign to correct keys, add exact xpath to prevent multiple extraction
-                        sub_data = position_data.find_elements(By.TAG_NAME, "span")
+                    try:
+                        sub_data = position_data.find_elements(By.XPATH, "./span")
                         for data in sub_data:
-                            print(data.text)
+                            data_text = data.find_element(By.XPATH, "./span").text
+                            if DataParser.is_employment_type(data_text):
+                                experience_info["employment_type"] = data_text
+                            else:
+                                experience_info["employment_type"] = None
+
+                            # Check if data_text is a location
+                            if DataParser.is_location(data_text):
+                                experience_info["location"] = data_text
+                            else:
+                                experience_info["location"] = None
+
+                            # Check if data_text is a date
+                            if DataParser.is_date(data_text):
+                                experience_info["dates"] = data_text
+                            else:
+                                experience_info["dates"] = None
                     except:
                         pass
-                    experience_info["dates"] = None
+                    try:
+                        skills = position.find_elements(By.TAG_NAME, "strong")
+                        for skill in skills:
+                            skill_details = skill.find_element(By.XPATH, "..")
+                            skill_text = skill_details.text
+                            if DataParser.is_skills(skill_text):
+                                experience_info["skills"] = skill_text
+                                print(experience_info["title"])
+                                print(experience_info["skills"])
+                            elif DataParser.is_skills(skill_text):
+                                experience_info["skills"] = None
+                                print(experience_info["title"])
+                                print("oops")
+                    except:
+                        pass
                     experience_info["job_description"] = None
-                    experience_info["skills"] = None
                     person.experiences.append(experience_info)
             except:
                 experience_info = {}
@@ -227,6 +264,41 @@ class Person:
             "phone_number": "",
             "website": ""
         }
+
+class DataParser:
+    def is_employment_type(input_string):
+        employment_types = ["Full-time", "Part-time", "Contract", "Temporary", "Freelance", "Internship", "Volunteer", "Self-employed", "Entrepreneur", "Apprenticeship"]
+        # Check if the input string is in the employment_types array
+        if input_string in employment_types:
+            return True
+        else:
+            return False
+
+    def is_location(input_string):
+        location_types = ["On-site", "Hybrid", "Remote"]
+        # Check if the input string is in the location_types array
+        if input_string in location_types:
+            return True
+        else:
+            return False
+
+    def is_date(input_string):
+        # Check if the string contains " - Present"
+        if " - Present" in input_string:
+            return True
+        # Check if the string contains "·" and "mos" indicating a duration
+        if "·" in input_string and "mos" in input_string:
+            return True
+        # Check if the string contains "·" and "yr" indicating a duration in years
+        if "·" in input_string and "yr" in input_string:
+            return True
+        return False
+    
+    def is_skills(input_string):
+    # Check if the string contains "skills"
+        if "skills" in input_string.lower():
+            return True
+        return False
 
 class PDFGenerator:
     def generate_pdf(self, person, pdf_filename):
