@@ -28,7 +28,7 @@ class LinkedinScaper:
         email_input.send_keys(email)
         password_input.send_keys(password)
         password_input.send_keys(Keys.ENTER)
-        # time.sleep(10) # fix later, this is a hack to manually surpass captcha
+        time.sleep(10) # fix later, this is a hack to manually surpass captcha
         time.sleep(self.WAIT_TIME)
         print("logged into account")
 
@@ -130,15 +130,19 @@ class LinkedinScaper:
                             skill_text = skill_details.text
                             if DataParser.is_skills(skill_text):
                                 experience_info["skills"] = skill_text
-                                print(experience_info["title"])
-                                print(experience_info["skills"])
                             elif DataParser.is_skills(skill_text):
                                 experience_info["skills"] = None
-                                print(experience_info["title"])
-                                print("oops")
                     except:
                         pass
-                    experience_info["job_description"] = None
+                    try:
+                        multi_job_description = position.find_element(By.XPATH, ".//div/div[2]/div[2]/ul/li[1]/div/ul/li/div/div/div/div/span[1]").text
+                        # Check if multi_job_description is the same as skills, and set job_description accordingly
+                        if multi_job_description == experience_info["skills"]:
+                            experience_info["job_description"] = None
+                        else:
+                            experience_info["job_description"] = multi_job_description
+                    except:
+                        experience_info["job_description"] = None
                     person.experiences.append(experience_info)
             except:
                 experience_info = {}
@@ -240,7 +244,7 @@ class LinkedinScaper:
                 }
                 person.languages.append(lang_obj)        
         except:
-            print(f"No languages for {person.name}")
+            pass
 
         print("Scraped Person Object:", person.name)
         return person
