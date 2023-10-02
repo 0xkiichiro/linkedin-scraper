@@ -7,7 +7,7 @@ from flask_cors import CORS
 
 app = Flask(__name__, template_folder='.')
 CORS(app)
-
+# todo: move scraper init above function to avoid multiple browser instances & improve speed
 @app.route("/scrape/<linkedin_handle>", methods=["GET"])
 def scrape_person_data(linkedin_handle: str):
     # init scraper
