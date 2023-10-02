@@ -247,7 +247,7 @@ class LinkedinScaper:
             pass
 
         print("Scraped Person Object:", person.name)
-        return person
+        return person.to_dict()
 
     def close_browser(self):
         self.driver.quit()
@@ -269,7 +269,21 @@ class Person:
             "website": ""
         }
 
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "title": self.title,
+            "location": self.location,
+            "about_text": self.about_text,
+            "experiences": self.experiences,
+            "education": self.education,
+            "certificates": self.certificates,
+            "languages": self.languages,
+            "contacts": self.contacts
+        }
+
 class DataParser:
+    @staticmethod
     def is_employment_type(input_string):
         employment_types = ["Full-time", "Part-time", "Contract", "Temporary", "Freelance", "Internship", "Volunteer", "Self-employed", "Entrepreneur", "Apprenticeship"]
         # Check if the input string is in the employment_types array
@@ -277,7 +291,8 @@ class DataParser:
             return True
         else:
             return False
-
+        
+    @staticmethod
     def is_location(input_string):
         location_types = ["On-site", "Hybrid", "Remote"]
         # Check if the input string is in the location_types array
@@ -285,7 +300,8 @@ class DataParser:
             return True
         else:
             return False
-
+        
+    @staticmethod
     def is_date(input_string):
         # Check if the string contains " - Present"
         if " - Present" in input_string:
@@ -298,6 +314,7 @@ class DataParser:
             return True
         return False
     
+    @staticmethod
     def is_skills(input_string):
     # Check if the string contains "skills"
         if "skills" in input_string.lower():
@@ -349,69 +366,68 @@ class PDFGenerator:
         story.append(personal_info_heading)
 
         # Add Personal Information
-        personal_info_text = f"<b>Name:</b> {unidecode(person.name)}<br/><b>Title:</b> {unidecode(person.title)}<br/><b>Location:</b> {unidecode(person.location)}<br/>"
+        personal_info_text = f"<b>Name:</b> {unidecode(person['name'])}<br/><b>Title:</b> {unidecode(person['title'])}<br/><b>Location:</b> {unidecode(person['location'])}<br/>"
         personal_info = Paragraph(personal_info_text, regular_style_8)
         story.append(personal_info)
 
-        if person.about_text:
-            about_text = Paragraph(person.about_text, regular_style_8)
+        if person["about_text"]:
+            about_text = Paragraph(person["about_text"], regular_style_8)
             story.append(about_text)
             story.append(Spacer(1, 12))  # Add spacing between education entries
 
         # Add Experiences
-        experiences_heading = Paragraph("<b>Experiences:</b>", styles["Heading3"])
-        story.append(experiences_heading)
-
-        for experience in person.experiences:
-            if experience["title"] and experience["company_name_and_contract_type"]:
-                if experience["title"] is not None:
-                    exp_title = unidecode(experience["title"])
-                    exp_title_paragraph = Paragraph(exp_title, subheading_style)
-                    story.append(exp_title_paragraph)
-                if experience["company_name_and_contract_type"] is not None:
-                    exp_company = unidecode(experience["company_name_and_contract_type"]).replace("*", "·")
-                    exp_company_paragraph = Paragraph(exp_company, regular_style_8)
-                    story.append(exp_company_paragraph)
-                if experience["dates"] is not None:
-                    exp_dates = unidecode(experience["dates"]).replace("*", "·")
-                    exp_dates_paragraph = Paragraph(exp_dates, oblique_style)
-                    story.append(exp_dates_paragraph)
-                if experience["job_description"] is not None:
-                    exp_description = unidecode(experience["job_description"])
-                    exp_description_paragraph = Paragraph(exp_description, justified_style)
-                    story.append(exp_description_paragraph)
-                if experience["skills"] is not None:
-                    exp_skills = experience["skills"].replace("*", "·")
-                    exp_skills_paragraph = Paragraph(exp_skills, regular_style_8)
-                    story.append(exp_skills_paragraph)
-                story.append(Spacer(1, 12))  # Add spacing between experiences
+        if len(person["experiences"]):
+            experiences_heading = Paragraph("<b>Experiences:</b>", styles["Heading3"])
+            story.append(experiences_heading)
+            for experience in person["experiences"]:
+                if experience["title"] and experience["company_name_and_contract_type"]:
+                    if experience["title"] is not None:
+                        exp_title = unidecode(experience["title"])
+                        exp_title_paragraph = Paragraph(exp_title, subheading_style)
+                        story.append(exp_title_paragraph)
+                    if experience["company_name_and_contract_type"] is not None:
+                        exp_company = unidecode(experience["company_name_and_contract_type"]).replace("*", "·")
+                        exp_company_paragraph = Paragraph(exp_company, regular_style_8)
+                        story.append(exp_company_paragraph)
+                    if experience["dates"] is not None:
+                        exp_dates = unidecode(experience["dates"]).replace("*", "·")
+                        exp_dates_paragraph = Paragraph(exp_dates, oblique_style)
+                        story.append(exp_dates_paragraph)
+                    if experience["job_description"] is not None:
+                        exp_description = unidecode(experience["job_description"])
+                        exp_description_paragraph = Paragraph(exp_description, justified_style)
+                        story.append(exp_description_paragraph)
+                    if experience["skills"] is not None:
+                        exp_skills = experience["skills"].replace("*", "·")
+                        exp_skills_paragraph = Paragraph(exp_skills, regular_style_8)
+                        story.append(exp_skills_paragraph)
+                    story.append(Spacer(1, 12))  # Add spacing between experiences
 
         # Add Education
-        education_heading = Paragraph("<b>Education:</b>", styles["Heading3"])
-        story.append(education_heading)
-
-        for education in person.education:
-            if education["school_name"]:
-                if education["school_name"] is not None:
-                    edu_school_name = unidecode(education["school_name"])
-                    edu_school_name_paragraph = Paragraph(edu_school_name, subheading_style)
-                    story.append(edu_school_name_paragraph)
-                if education["degree_type"] is not None:
-                    edu_degree_type = unidecode(education["degree_type"])
-                    edu_degree_type_paragraph = Paragraph(edu_degree_type, regular_style_8)
-                    story.append(edu_degree_type_paragraph)
-                if education["school_years"] is not None:
-                    edu_school_years = unidecode(education["school_years"])
-                    edu_school_years_paragraph = Paragraph(edu_school_years, oblique_style)
-                    story.append(edu_school_years_paragraph)
-                story.append(Spacer(1, 12))  # Add spacing between education entries
+        if len(person["education"]):
+            education_heading = Paragraph("<b>Education:</b>", styles["Heading3"])
+            story.append(education_heading)
+            for education in person["education"]:
+                if education["school_name"]:
+                    if education["school_name"] is not None:
+                        edu_school_name = unidecode(education["school_name"])
+                        edu_school_name_paragraph = Paragraph(edu_school_name, subheading_style)
+                        story.append(edu_school_name_paragraph)
+                    if education["degree_type"] is not None:
+                        edu_degree_type = unidecode(education["degree_type"])
+                        edu_degree_type_paragraph = Paragraph(edu_degree_type, regular_style_8)
+                        story.append(edu_degree_type_paragraph)
+                    if education["school_years"] is not None:
+                        edu_school_years = unidecode(education["school_years"])
+                        edu_school_years_paragraph = Paragraph(edu_school_years, oblique_style)
+                        story.append(edu_school_years_paragraph)
+                    story.append(Spacer(1, 12))  # Add spacing between education entries
 
         # Add Certificates
-        # todo: heading still present when there is no content underneath, fix
-        if len(person.certificates):
+        if len(person["certificates"]):
             certificates_heading = Paragraph("<b>Certificates:</b>", styles["Heading3"])
             story.append(certificates_heading)
-            for certificate in person.certificates:
+            for certificate in person["certificates"]:
                 certificate_name = unidecode(certificate["name"])
                 certificate_name_paragraph = Paragraph(certificate_name, subheading_style)
                 story.append(certificate_name_paragraph)
@@ -424,10 +440,10 @@ class PDFGenerator:
             story.append(Spacer(1, 12))  # Add spacing between education entries
 
         # Add Languages
-        if len(person.languages):
+        if len(person["languages"]):
             languages_heading = Paragraph("<b>Languages:</b>", styles["Heading3"])
             story.append(languages_heading)
-            for language in person.languages:
+            for language in person["languages"]:
                 language_name = unidecode(language["name"])
                 language_name_paragraph = Paragraph(language_name, regular_style_8)
                 story.append(language_name_paragraph)
