@@ -75,7 +75,7 @@ class LinkedinScaper:
             time.sleep(self.WAIT_TIME)
         except:
             pass
-        
+        # todo: broke experience scraping whilst working on API, fix        
         # Scrape experiences
         experience_container = self.driver.find_element(By.CLASS_NAME, "pvs-list")
         experiences = experience_container.find_elements(By.XPATH, "*")

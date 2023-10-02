@@ -1,11 +1,12 @@
 from core import LinkedinScaper
 from core import PDFGenerator
-from flask import Flask, jsonify, request, send_file
 import json
 import os
-
+from flask import Flask, jsonify, request, send_file
+from flask_cors import CORS
 
 app = Flask(__name__, template_folder='.')
+CORS(app)
 
 @app.route("/scrape/<linkedin_handle>", methods=["GET"])
 def scrape_person_data(linkedin_handle: str):
